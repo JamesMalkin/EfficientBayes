@@ -156,10 +156,8 @@ def train(sample=False, biosample=False, s=False, lang=False):
                 for j in range(SAMPLES):
                     preds = net(data, sample=sample)
                     loglike += net.loss(preds, target)
-                    rel_loss += net.rel_loss
-                    reg_loss += net.reg_loss
                 
-                loss = loglike + rel_loss + reg_loss
+                loss = loglike + net.rel_loss + net.reg_loss
                 loss /= SAMPLES
                 loss.backward()
                 if epoch in np.arange(1000, 1100, 1):
