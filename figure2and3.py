@@ -50,7 +50,7 @@ class NetLayer(nn.Module):
         self.bias_phi = nn.Parameter(torch.full((1, out_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()) #was 0.01 before january
         
     
-    def forward(self, input, sample=False):
+    def forward(self, input, sample=False, uniform=False):
         weight_sig = F.softplus(self.weight_phi)
         bias_sig = F.softplus(self.bias_phi)
         
@@ -108,7 +108,7 @@ class Net(nn.Module):
         self.reg_loss = 0
         
         x = x.view(-1, 784)
-        x = self.linear1(x, sample, uniform, power=2, scale=1,)
+        x = self.linear1(x, sample, uniform)
         x = F.relu(self.linear2(x, sample, uniform))
         x = F.relu(self.linear3(x, sample, uniform))
         x = F.log_softmax(x, dim=1)
@@ -121,7 +121,7 @@ class Net(nn.Module):
         return loss
 
 
-def train(sample=False, biosample=False, s=False, lang=False):
+def train(sample=False, uniform=False):
     loss_list = []
     accs_list = []
     hessian = []
@@ -142,7 +142,7 @@ def train(sample=False, biosample=False, s=False, lang=False):
                 rel_loss = 0
                 reg_loss = 0
 
-                preds = net(data, sample=sample)
+                preds = net(data, sample=sample, uniform=uniform)
                 loglike += net.loss(preds, target)
                 
                 loss = loglike + net.rel_loss + net.reg_loss
