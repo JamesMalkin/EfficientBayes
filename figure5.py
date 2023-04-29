@@ -46,8 +46,8 @@ class NetLayer(nn.Module):
         self.weight_phi = nn.Parameter((torch.full((out_features, in_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()))
         
         # Bias parameters
-        self.bias_mu = nn.Parameter(torch.empty(out_features, device=device, dtype=torch.double).uniform_(-0.1, 0.1)) #(-0.2, 0.2) 
-        self.bias_phi = nn.Parameter(torch.full((1, out_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()) #was 0.01 before january
+        self.bias_mu = nn.Parameter(torch.empty(out_features, device=device, dtype=torch.double).uniform_(-0.1, 0.1)) 
+        self.bias_phi = nn.Parameter(torch.full((1, out_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()) 
         
     
     def forward(self, input, sample=False):
@@ -114,7 +114,7 @@ class Net(nn.Module):
         return loss
 
 
-def train(sample=False, biosample=False, s=False, lang=False):
+def train(sample=False):
     loss_list = []
     accs_list = []
     hessian = []
