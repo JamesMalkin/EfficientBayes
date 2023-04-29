@@ -107,25 +107,15 @@ class Net(nn.Module):
         
         x = x.view(-1, 784)
         x = self.linear1(x, sample)
-        '''if epoch in np.arange(1000, 1100, 1):
-            if len(self.firingrate) == 0:
-                self.firingrate.append(x.detach().clone())
-            else:
-                self.firingrate[0] += x.detach().clone()
         x = F.relu(self.linear2(x, sample, biosample, lang, noise))
-        if epoch in np.arange(1000, 1100, 1):
-            if len(self.firingrate) == 1:
-                self.firingrate.append(x.detach().clone())
-            else:
-                self.firingrate[1] += x.detach().clone()
-        x = F.relu(self.linear3(x, sample))'''
+        x = F.relu(self.linear3(x, sample))
         x = F.log_softmax(x, dim=1)
         return x
     
     @staticmethod
     def loss(pred_values, true_values):
         criterion = nn.NLLLoss(reduction='mean')
-        loss = criterion(pred_values, true_values)*BATCHSIZE*10
+        loss = criterion(pred_values, true_values)*BATCHSIZE
         return loss
 
 SAMPLES = 1
@@ -138,62 +128,27 @@ def train(sample=False, biosample=False, s=False, lang=False):
     running_rel_loss = 0
     running_reg_loss = 0
     running_mode_loss = 0
-    for epoch in range(1100):
-        if epoch in np.arange(1000, 1100, 1):
-            sample = False
+    for epoch in range(1000):
         for batch_idx, (data, target) in enumerate(trainloader):
-            if batch_idx <= len(trainloader):
-                net.train()
-                data = data.to(device)
-                data = data.type(torch.double)
-                target = target.to(device)
-                target = target.type(torch.long)
-                net.zero_grad()
-                loglike = 0
-                rel_loss = 0
-                reg_loss = 0
+            net.train()
+            data = data.to(device)
+            data = data.type(torch.double)
+            target = target.to(device)
+            target = target.type(torch.long)
+            net.zero_grad()
+            loglike = 0
+            rel_loss = 0
+            reg_loss = 0
 
-                for j in range(SAMPLES):
-                    preds = net(data, sample=sample)
-                    loglike += net.loss(preds, target)
-                    rel_loss += net.rel_loss
-                    reg_loss += net.reg_loss
-                
-                loss = loglike + rel_loss + reg_loss
-                loss /= SAMPLES
-                loss.backward()
-                if epoch in np.arange(1000, 1100, 1):
-                    for name, p in net.named_parameters():
-                        g = p.grad.data
-                        if name in ['linear1.weight_mu', 'linear2.weight_mu', 'linear3.weight_mu']:
-                            if len(hessian) <= LAYERS:
-                                hessian.append((g.detach().clone()**2))
-                                lr.append(torch.abs(g.detach().clone()))
-                            elif name=='linear1.weight_mu':
-                                hessian[0] += (g.detach().clone()**2)
-                                lr[0] += torch.abs(g.detach().clone())
-                            elif name=='linear2.weight_mu':
-                                hessian[1] += (g.detach().clone()**2)
-                                lr[1] += torch.abs(g.detach().clone())
-                            elif name=='linear3.weight_mu':
-                                hessian[1] += (g.detach().clone()**2)
-                                lr[1] += torch.abs(g.detach().clone())
-                            
-                running_loss += loss.item()
-                running_loglike += loglike.item()/10
-                running_rel_loss += net.rel_loss.item()/10
-                running_reg_loss += net.reg_loss.item()/10
-               
-                
-                if epoch not in np.arange(1000, 1100, 1):
-                    optimiser.step()
+            for j in range(SAMPLES):
+                preds = net(data, sample=sample)
+                loglike += net.loss(preds, target)
+                rel_loss += net.rel_loss
+                reg_loss += net.reg_loss
 
-                if batch_idx % TRAINING_INSTANCES/BATCHSIZE == TRAINING_INSTANCES/BATCHSIZE-1: # Print every so mini-batches (epoch)
-                    print('[Epoch-{}, Batch-{} total loss= {}, loglike={}, rel_loss= {}, reg_loss= {}'.format(epoch + 1, batch_idx + 1, running_loss / (3000*BATCHSIZE), running_loglike/(3000*BATCHSIZE), running_rel_loss/(3000*BATCHSIZE), running_reg_loss/(3000*BATCHSIZE)))
-                    running_loss = 0.0
-                    running_loglike = 0.0
-                    running_rel_loss = 0.0
-                    running_reg_loss = 0.0
+            loss = loglike + rel_loss + reg_loss
+            loss.backward()
+            optimiser.step()
 
     mode_performance, mode_loss = (0,0)
     sample_performance, sample_loss = (0,0)
@@ -203,7 +158,7 @@ def train(sample=False, biosample=False, s=False, lang=False):
     sample_performance, sample_loss = test(sample=True, exp_accuracy=False)
     expected_performance, expected_loss = test(sample=True, exp_accuracy=True)
     
-    return mode_performance, mode_loss, sample_performance, sample_loss, sampled_test, expected_performance, expected_loss, hessian, lr
+    return mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss
 
         
 
@@ -216,7 +171,7 @@ def test(sample=False, classes=10, exp_accuracy=False):
             for data in testloader:
                 preds = torch.zeros(BATCHSIZE, 10)
                 class_preds = torch.zeros(BATCHSIZE, 1)
-                for n in range(20):
+                for n in range(100):
                     images, labels = data
                     images = images.to(device)
                     images = images.type(torch.double) 
@@ -224,7 +179,7 @@ def test(sample=False, classes=10, exp_accuracy=False):
                     labels = labels.type(torch.long)
                     preds += net(images, sample=sample, biosample=biosample, lang=lang, noise=noise)
                     
-                preds /= 20
+                preds /= 100
                 loss += net.loss(preds, labels)
                 class_preds = preds.max(1, keepdim=True)[1]
                 correct += class_preds.eq(labels.view(-1, 1)).sum().item()
