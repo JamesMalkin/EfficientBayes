@@ -21,10 +21,9 @@ testset = torchvision.datasets.MNIST(root = '.data/testset', train = False, tran
 torch.manual_seed(0)
     
 BATCHSIZE = 20
-EPOCHS = 1
 TEST_INSTANCES = 10000
 TRAINING_INSTANCES = 60000
-LAYERS = 1
+LAYERS = 3
 
 #trainset = torch.load('.data/trainset')
 #trainset, valset = torch.utils.data.random_split(trainset, [50000, 10000])
@@ -40,7 +39,8 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=BATCHSIZE,
 class NetLayer(nn.Module):
     def __init__(self, in_features, out_features):
         super().__init__()
-        
+        self.p = power
+        self.s = torch.tensor(scale, device=device)
         # Weight parameters
         self.weight_mu = nn.Parameter(torch.empty(out_features, in_features, device=device,dtype=torch.double).uniform_(-0.1, 0.1))
         self.weight_phi = nn.Parameter((torch.full((out_features, in_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()))
@@ -90,25 +90,25 @@ class NetLayer(nn.Module):
 class Net(nn.Module):
     def __init__(self, power=2, scale=1): 
         super().__init__()
-        self.firingrate = []
         self.p = power
         self.s = torch.tensor(scale, device=device)
-        self.linear1 = NetLayer(28*28, 10, self.p, self.s)
-        self.linear2 = NetLayer(100, 100, self.p, self.s)
-        self.linear3 = NetLayer(100, 10, self.p, self.s)
+        self.firingrate = []
+        self.linear1 = NetLayer(28*28, 10)
+        self.linear2 = NetLayer(100, 100)
+        self.linear3 = NetLayer(100, 10)
     
     def rel_cost_func(self, sig):
         return (BATCHSIZE/TRAINING_INSTANCES)*torch.sum((1/self.p) * (self.s/sig)**self.p)
     
     def reg_cost_func(self, mu):
-        return (BATCHSIZE/TRAINING_INSTANCES)*0.1*torch.sum(torch.abs(mu))
+        return (BATCHSIZE/TRAINING_INSTANCES)*0.01*torch.sum(torch.abs(mu))
         
     def forward(self, x, sample=False, biosample=False, lang=False, noise=False, s=False, batch_idx=False, epoch=False):
         self.rel_loss = 0
         self.reg_loss = 0
         
         x = x.view(-1, 784)
-        x = self.linear1(x, sample, uniform)
+        x = self.linear1(x, sample, uniform, power=2, scale=1,)
         x = F.relu(self.linear2(x, sample, uniform))
         x = F.relu(self.linear3(x, sample, uniform))
         x = F.log_softmax(x, dim=1)
@@ -120,16 +120,13 @@ class Net(nn.Module):
         loss = criterion(pred_values, true_values)*BATCHSIZE
         return loss
 
-SAMPLES = 1
+
 def train(sample=False, biosample=False, s=False, lang=False):
     loss_list = []
     accs_list = []
     hessian = []
     lr = []
-    running_loss = 0
-    running_rel_loss = 0
-    running_reg_loss = 0
-    running_mode_loss = 0
+ 
     for epoch in range(1100):
         if epoch in np.arange(1000, 1100, 1):
             sample = False
@@ -145,9 +142,8 @@ def train(sample=False, biosample=False, s=False, lang=False):
                 rel_loss = 0
                 reg_loss = 0
 
-                for j in range(SAMPLES):
-                    preds = net(data, sample=sample)
-                    loglike += net.loss(preds, target)
+                preds = net(data, sample=sample)
+                loglike += net.loss(preds, target)
                 
                 loss = loglike + net.rel_loss + net.reg_loss
              
@@ -232,48 +228,19 @@ coeffs = 10**(np.arange(-2, 4.25, 0.25, dtype=float))
 powers = [0.5, 2/3, 4/3, 2]
    
     
-hessian_list = []
-var_list = []
-lr_list = []
-firingrate_list = []
-accs_arr = []
-rel_arr = []
-sig_arr = []
-loss_arr = []
 for p in powers:
     sig = []
     rel = []
     sampled_accs_arr = []
     sampled_loss_arr = []
     for c in coeffs:
-        test_arr = []
-        expected_arr = []
-        expected_l = []
-        nv_arr = []
-        bio_v_arr = []
-        n_bio_v_arr = []
-        v_arr = []
-        rel_cost_arr = []
-        rel_cost = []
-        uni_add_noise_pef = []
-        lang_add_noise_pef = []
         s = (c*p)**(1/p)
         net = Net(power=p, scale=s)
         optimiser = optim.Adam(net.parameters(), lr=0.0001)
         for epoch in range(1):
             mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss = train(sample=True, uniform=False)
-            #loss_arr.append(loss_list)
-            test_arr.append(test_list)
-            sampled_accs_arr.append(sampled_test)
-            expected_arr.append(expected_test)
-            sampled_loss_arr.append(sampled_loss)
-            expected_l.append(expected_loss)
-            nv_arr.append(norm_var)
-            bio_v_arr.append(bio_var)
-            n_bio_v_arr.append(norm_bio_var)
-            v_arr.append(var)
-            rel_cost_arr.append(rel_cost)
-            rel_cost = []
+            sampled_accs_arr.append(sample_performance)
+            sampled_loss_arr.append(sample_loss)
         
         sig_list = []
         rel_list = []
