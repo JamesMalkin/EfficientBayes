@@ -59,14 +59,11 @@ class NetLayer(nn.Module):
         if self.training:
             net.reg_loss += net.reg_cost_func(self.weight_mu).sum()
             net.reg_loss += net.reg_cost_func(self.bias_mu).sum()
-            #net.prior_loss += net.prior_cost_func(self.weight_mu).sum()
-            #net.prior_loss += net.prior_cost_func(self.bias_mu).sum()
             
             if sample:
                 net.rel_loss += net.rel_cost_func(weight_sig)
                 net.rel_loss += net.rel_cost_func(bias_sig)
-                #net.ent_loss += net.ent_cost_func(self.weight_mu).sum()
-                #net.ent_loss += net.ent_cost_func(self.bias_mu).sum()
+           
                   
         weight_dist = torch.distributions.Normal(self.weight_mu, weight_sig)
         bias_dist = torch.distributions.Normal(self.bias_mu, bias_sig)
@@ -83,8 +80,8 @@ class Net(nn.Module):
         self.p = power
         self.s = torch.tensor(scale, device=device)
         self.linear1 = NetLayer(28*28, 10, self.p, self.s)
-        #self.linear2 = NetLayer(100, 100, self.p, self.s)
-        #self.linear3 = NetLayer(100, 10, self.p, self.s)
+        self.linear2 = NetLayer(100, 100, self.p, self.s)
+        self.linear3 = NetLayer(100, 10, self.p, self.s)
     
     def rel_cost_func(self, sig):
         return (BATCHSIZE/TRAINING_INSTANCES)*torch.sum((1/self.p) * (self.s/sig)**self.p)
@@ -97,19 +94,9 @@ class Net(nn.Module):
         self.reg_loss = 0
         
         x = x.view(-1, 784)
-        x = self.linear1(x, sample)
-        if epoch in np.arange(1000, 1100, 1):
-            if len(self.firingrate) == 0:
-                self.firingrate.append(x.detach().clone())
-            else:
-                self.firingrate[0] += x.detach().clone()
-        x = F.relu(self.linear2(x, sample, biosample, lang, noise))
-        if epoch in np.arange(1000, 1100, 1):
-            if len(self.firingrate) == 1:
-                self.firingrate.append(x.detach().clone())
-            else:
-                self.firingrate[1] += x.detach().clone()
-        x = F.relu(self.linear3(x, sample))
+        x = self.linear1(x, sample, uniform)
+        x = F.relu(self.linear2(x, sample, uniform))
+        x = F.relu(self.linear3(x, sample, uniform))
         x = F.log_softmax(x, dim=1)
         return x
     
@@ -149,28 +136,9 @@ def train(sample=False, biosample=False, s=False, lang=False):
                     loglike += net.loss(preds, target)
                 
                 loss = loglike + net.rel_loss + net.reg_loss
-                loss /= SAMPLES
+             
                 loss.backward()
-                if epoch in np.arange(1000, 1100, 1):
-                    for name, p in net.named_parameters():
-                        if name in ['linear1.weight_mu', 'linear2.weight_mu', 'linear3.weight_mu']:
-                            g = p.grad.data
-                            if len(hessian) <= LAYERS:
-                                hessian.append((g.detach().clone()**2))
-                                lr.append(torch.abs(g.detach().clone()))
-                            elif name=='linear1.weight_mu':
-                                hessian[0] += (g.detach().clone()**2)
-                                lr[0] += torch.abs(g.detach().clone())
-                            elif name=='linear2.weight_mu':
-                                hessian[1] += (g.detach().clone()**2)
-                                lr[1] += torch.abs(g.detach().clone())
-                            elif name=='linear3.weight_mu':
-                                hessian[1] += (g.detach().clone()**2)
-                                lr[1] += torch.abs(g.detach().clone())
-                            
-                
-                if epoch not in np.arange(1000, 1100, 1):
-                    optimiser.step()
+                optimiser.step()
 
 
     mode_performance, mode_loss = (0,0)
@@ -181,7 +149,7 @@ def train(sample=False, biosample=False, s=False, lang=False):
     sample_performance, sample_loss = test(sample=True, exp_accuracy=False)
     expected_performance, expected_loss = test(sample=True, exp_accuracy=True)
     
-    return mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss, hessian, lr
+    return mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss
 
         
 
@@ -249,65 +217,172 @@ firingrate_list = []
 coeffs = 10**(np.arange(-2, 4.25, 0.25, dtype=float))
 powers = [0.5, 2/3, 4/3, 2]
    
+    
+hessian_list = []
+var_list = []
+lr_list = []
+firingrate_list = []
+accs_arr = []
+rel_arr = []
+sig_arr = []
+loss_arr = []
+expected_accs_arr = []
+expected_loss_arr = []
 for p in powers:
-    mode_performance_arr = []
-    mode_loss_arr = []
-    sample_performance_arr = []
-    sample_loss_arr = []
-    sampled_test_arr = []
-    expected_performance_arr = []
-    expected_loss_arr = []
-    sig_arr = []
-    rel_arr = []
+    sig = []
+    rel = []
+    sampled_accs_arr = []
+    sampled_loss_arr = []
+    for c in coeffs:
+        test_arr = []
+        expected_arr = []
+        expected_l = []
+        nv_arr = []
+        bio_v_arr = []
+        n_bio_v_arr = []
+        v_arr = []
+        #sig_arr = []
+        rel_cost_arr = []
+        rel_cost = []
+        uni_add_noise_pef = []
+        lang_add_noise_pef = []
+        #c = 10**-4 #try bigger c
+        s = (c*p)**(1/p)
+        #s=0.1
+        #print(s)
+        net = Net(power=p, scale=s)
+        #optimiser = AdaBayes(net.parameters(), batch_size=BATCHSIZE, bio_optim=False)
+        #optimiser = optim.SGD(net.parameters(), lr=0.0001)
+        optimiser = optim.Adam(net.parameters(), lr=0.0001) #was 0.0001 before january
+        for epoch in range(1):
+            loss_list, test_list, sampled_test, norm_var, bio_var, norm_bio_var, var, rel_cost, bayes_sample, hessian, lr, sampled_loss, expected_loss, expected_test = train(sample=True, biosample=False, lang=False)
+            #loss_arr.append(loss_list)
+            test_arr.append(test_list)
+            sampled_accs_arr.append(sampled_test)
+            expected_arr.append(expected_test)
+            sampled_loss_arr.append(sampled_loss)
+            expected_l.append(expected_loss)
+            nv_arr.append(norm_var)
+            bio_v_arr.append(bio_var)
+            n_bio_v_arr.append(norm_bio_var)
+            v_arr.append(var)
+            rel_cost_arr.append(rel_cost)
+            rel_cost = []
+        
+        sig_list = []
+        rel_list = []
+        for mod in net.modules():
+            if isinstance(mod, NetLayer):
+                #var_list.append(torch.pow(F.softplus(mod.weight_phi.detach().clone()),2))
+                sig_list.append(((F.softplus(mod.weight_phi.detach().clone()))**2).sum().item())
+                relcost = lambda sig, p: (1/p)*sig**(-p) 
+                rel_list.append(relcost(F.softplus(mod.weight_phi.detach().clone()),p).sum().item())
+        sig.append(np.sqrt((np.sum(np.array(sig_list)))/(28*28*100+100*100+100*10)))
+        rel.append(np.sum(np.array(rel_list)))
+        
+        net = Net(power=p, scale=s)
+        optimiser = optim.Adam(net.parameters(), lr=0.0001)
+        for epoch in range(1):   
+            loss_list, test_list, sampled_test, norm_var, bio_var, norm_bio_var, var, rel_cost, bayes_sample, hessian, lr, sampled_loss, expected_loss, expected_test = train(sample=True, biosample=False, lang=True)
+            #loss_arr.append(loss_list)
+            test_arr.append(test_list)
+            sampled_accs_arr.append(sampled_test)
+            expected_arr.append(expected_test)
+            sampled_loss_arr.append(sampled_loss)
+            expected_l.append(expected_loss)
+            nv_arr.append(norm_var)
+            bio_v_arr.append(bio_var)
+            n_bio_v_arr.append(norm_bio_var)
+            v_arr.append(var)
+            rel_cost_arr.append(rel_cost)
+            rel_cost = []
+        
+        sig_list = []
+        for mod in net.modules():
+            if isinstance(mod, NetLayer):
+                sig_list.append(((F.softplus(mod.weight_phi.detach().clone()))**2).sum().item()) 
+        sig.append(np.sqrt((np.sum(np.array(sig_list)))/(28*28*100+100*100+100*10)))
+        relcost = lambda sig, p: (1/p)*sig**(-p)
+        rel.append((28*28*100+100*100+100*10)*relcost(sig[-1], p).item())
+        '''hess = torch.zeros_like(hessian[0])
+        hess2 = torch.zeros_like(hessian[1])
+        hess3 = torch.zeros_like(hessian[2])
+        #for i, h in enumerate(hessian[int(np.round(len(hessian)*(95/100))):]):
+        for i, h in enumerate(hessian):
+            #hess += h
+            if i % 3 == 0:
+                hess += h
+            elif i % 3 == 1:
+                hess2 += h
+            else:
+                hess3 += h    
+        #hess /= len(hessian[int(np.round(len(hessian)*(95/100))):])/2
+        #hess2 /= len(hessian[int(np.round(len(hessian)*(95/100))):])/2
+        hess /= (len(hessian)/3)
+        hess /= BATCHSIZE
+        hess2 /= (len(hessian)/3)
+        hess2 /= BATCHSIZE
+        hess3 /= (len(hessian)/3)
+        hess3 /= BATCHSIZE
+        print(hess)
+        hessian_list.append(hess)
+        hessian_list.append(hess2)
+        hessian_list.append(hess3)
 
-    s = 0.01
-    net = Net(power=p, scale=s)
-    optimiser = optim.Adam(net.parameters(), lr=0.0001)
-    #for c in coeffs:
-    mode_performance, mode_loss, sample_performance, sample_loss, sampled_test, expected_performance, expected_loss, hessian, lr = train(sample=True, biosample=False, lang=False)
-    mode_performance_arr.append(mode_performance)
-    mode_loss_arr.append(mode_loss)
-    sample_performance_arr.append(sample_performance)
-    sample_loss_arr.append(sample_loss)
-    sampled_test_arr.append(sampled_test)
-    expected_performance_arr.append(expected_performance)
-    expected_loss_arr.append(expected_loss)
-    
-    rel_cost = 0
-    for mod in net.modules():
-        if isinstance(mod, NetLayer):
-            sig_arr.append(F.softplus(mod.weight_phi.detach().clone()))
-            rel_cost += net.rel_cost_func(sig_list[-1])
-    rel_arr.append(rel_cost)
-    
-    #hess = torch.zeros_like(hessian[0])
-    #hess2 = torch.zeros_like(hessian[1])
-    #hess3 = torch.zeros_like(hessian[2]) '
-    hess = hessian[0]/(100*TRAINING_INSTANCES)
-    #hess2 = hessian[1]/(100*TRAINING_INSTANCES)
-    #hess3 = hessian[2]/(100*TRAINING_INSTANCES)
-    hessian_list.append(hess)
-    #hessian_list.append(hess2)
-    #hessian_list.append(hess3)
+        learn_rate = torch.zeros_like(lr[0])
+        learn_rate2 = torch.zeros_like(lr[1])
+        learn_rate3 = torch.zeros_like(lr[2])
+        #for i, l in enumerate(lr[int(np.round(len(lr)*(95/100))):]):
+        for i, l in enumerate(lr):
+            #learn_rate += l
+            if i % 3 == 0:
+                learn_rate += l
+            elif i % 3 == 1:
+                learn_rate2 += l
+            else:
+                learn_rate3 += l
+        #learn_rate /= len(lr[int(np.round(len(lr)*(95/100))):])/2
+        #learn_rate2 /= len(lr[int(np.round(len(lr)*(95/100))):])/2
+        learn_rate /= (len(lr)/3)
+        learn_rate /= BATCHSIZE
+        learn_rate2 /= (len(lr)/3)
+        learn_rate2 /= BATCHSIZE
+        learn_rate3 /= (len(lr)/3)
+        learn_rate3 /= BATCHSIZE
+        #learn_rate2 *= (60000/BATCHSIZE)
+        #print(hess)
+        lr_list.append(learn_rate)
+        lr_list.append(learn_rate2)
+        lr_list.append(learn_rate3)
 
-    #learn_rate = torch.zeros_like(lr[0])
-    #learn_rate2 = torch.zeros_like(lr[1])
-    #learn_rate3 = torch.zeros_like(lr[2])
-    learn_rate = lr[0]/(100*TRAINING_INSTANCES)
-    #learn_rate2 = lr[1]/(100*TRAINING_INSTANCES)
-    #learn_rate3 = lr[2]/(100*TRAINING_INSTANCES)
-    lr_list.append(learn_rate)
-    #lr_list.append(learn_rate2)
-    #lr_list.append(learn_rate3)
-
-    #firingrate_list.append(net.firingrate[0]/(100*TRAINING_INSTANCES))
-    #firingrate_list.append(net.firingrate[1]/(100*TRAINING_INSTANCES))
+        firingrate_list.append(net.firingrate[0]/(30000*20))
+        firingrate_list.append(net.firingrate[1]/(30000*20))'''
     
-    '''mode_performance_list.append(mode_performance_arr)
-    mode_loss_list.append(mode_loss_arr)
-    sample_performance_list.append(sample_performance_arr)
-    sample_loss_list.append(sample_loss_arr)
-    sampled_test_list.append(sampled_test_arr)
-    expected_performance_list.append(expected_performance_arr)
-    expected_loss_list.append(expected_loss_arr)
-    rel_list.append(rel_arr)'''
+        
+        #expected_accs.append(expected_arr)
+        #expected_lloss.append(expected_l)
+        #loss.append(sampled_loss)
+        #accs = np.array(test_arr)[:, -1]
+        #accs_arr.append(list(accs))
+        #v.append(np.array(v_arr).mean().tolist())
+        #bio_v.append(np.array(bio_v_arr[:]).mean(axis=1).tolist())
+    sig_arr.append(sig)
+    rel_arr.append(rel)
+    accs_arr.append(sampled_accs_arr)
+    #expected_accs_arr(expected_accs)
+    loss_arr.append(sampled_loss_arr)
+    #expected_loss_arr(expected_loss)
+    
+
+np.save('accs_arr', accs_arr)
+np.save('rel_arr', rel_arr)
+np.save('sig_arr', sig_arr)
+#np.save('expected_accs_arr', expected_accs_arr)
+np.save('loss_arr', loss_arr)
+#np.save('expected_loss_arr', expected_loss_arr)
+#np.save('loss_expected_arr', expected_loss_arr)
+#np.save('firingrate_list', firingrate_list)
+#np.save('lr_list', lr_list)
+#np.save('hessian_list', hessian_list)
+
+
