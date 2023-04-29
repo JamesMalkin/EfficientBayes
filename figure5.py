@@ -4,12 +4,7 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import math
-import pandas as pd
 import numpy as np
-import os
-import matplotlib.pyplot as plt
-
 
 
 if torch.cuda.is_available():  
@@ -96,10 +91,6 @@ class Net(nn.Module):
     
     def reg_cost_func(self, mu):
         return (BATCHSIZE/TRAINING_INSTANCES)*0.1*torch.sum(torch.abs(mu))
-    
-    def prior_cost_func(self, mu):
-        return (BATCHSIZE/TRAINING_INSTANCES)*1*torch.sum(mu**2)
-
         
     def forward(self, x, sample=False, biosample=False, lang=False, noise=False, s=False, batch_idx=False, epoch=False):
         self.rel_loss = 0
@@ -107,7 +98,7 @@ class Net(nn.Module):
         
         x = x.view(-1, 784)
         x = self.linear1(x, sample)
-        '''if epoch in np.arange(1000, 1100, 1):
+        if epoch in np.arange(1000, 1100, 1):
             if len(self.firingrate) == 0:
                 self.firingrate.append(x.detach().clone())
             else:
@@ -118,14 +109,14 @@ class Net(nn.Module):
                 self.firingrate.append(x.detach().clone())
             else:
                 self.firingrate[1] += x.detach().clone()
-        x = F.relu(self.linear3(x, sample))'''
+        x = F.relu(self.linear3(x, sample))
         x = F.log_softmax(x, dim=1)
         return x
     
     @staticmethod
     def loss(pred_values, true_values):
         criterion = nn.NLLLoss(reduction='mean')
-        loss = criterion(pred_values, true_values)*BATCHSIZE*10
+        loss = criterion(pred_values, true_values)*BATCHSIZE
         return loss
 
 SAMPLES = 1
@@ -162,8 +153,8 @@ def train(sample=False, biosample=False, s=False, lang=False):
                 loss.backward()
                 if epoch in np.arange(1000, 1100, 1):
                     for name, p in net.named_parameters():
-                        g = p.grad.data
                         if name in ['linear1.weight_mu', 'linear2.weight_mu', 'linear3.weight_mu']:
+                            g = p.grad.data
                             if len(hessian) <= LAYERS:
                                 hessian.append((g.detach().clone()**2))
                                 lr.append(torch.abs(g.detach().clone()))
@@ -177,21 +168,10 @@ def train(sample=False, biosample=False, s=False, lang=False):
                                 hessian[1] += (g.detach().clone()**2)
                                 lr[1] += torch.abs(g.detach().clone())
                             
-                running_loss += loss.item()
-                running_loglike += loglike.item()/10
-                running_rel_loss += net.rel_loss.item()/10
-                running_reg_loss += net.reg_loss.item()/10
-               
                 
                 if epoch not in np.arange(1000, 1100, 1):
                     optimiser.step()
 
-                if batch_idx % TRAINING_INSTANCES/BATCHSIZE == TRAINING_INSTANCES/BATCHSIZE-1: # Print every so mini-batches (epoch)
-                    print('[Epoch-{}, Batch-{} total loss= {}, loglike={}, rel_loss= {}, reg_loss= {}'.format(epoch + 1, batch_idx + 1, running_loss / (3000*BATCHSIZE), running_loglike/(3000*BATCHSIZE), running_rel_loss/(3000*BATCHSIZE), running_reg_loss/(3000*BATCHSIZE)))
-                    running_loss = 0.0
-                    running_loglike = 0.0
-                    running_rel_loss = 0.0
-                    running_reg_loss = 0.0
 
     mode_performance, mode_loss = (0,0)
     sample_performance, sample_loss = (0,0)
@@ -201,7 +181,7 @@ def train(sample=False, biosample=False, s=False, lang=False):
     sample_performance, sample_loss = test(sample=True, exp_accuracy=False)
     expected_performance, expected_loss = test(sample=True, exp_accuracy=True)
     
-    return mode_performance, mode_loss, sample_performance, sample_loss, sampled_test, expected_performance, expected_loss, hessian, lr
+    return mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss, hessian, lr
 
         
 
