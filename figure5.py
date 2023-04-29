@@ -74,11 +74,9 @@ class Net(nn.Module):
     def __init__(self, power=2, scale=1): 
         super().__init__()
         self.firingrate = []
-        self.p = power
-        self.s = torch.tensor(scale, device=device)
-        self.linear1 = NetLayer(28*28, 10, self.p, self.s)
-        self.linear2 = NetLayer(100, 100, self.p, self.s)
-        self.linear3 = NetLayer(100, 10, self.p, self.s)
+        self.linear1 = NetLayer(28*28, 10)
+        self.linear2 = NetLayer(100, 100)
+        self.linear3 = NetLayer(100, 10)
     
     def rel_cost_func(self, sig):
         return (BATCHSIZE/TRAINING_INSTANCES)*torch.sum((1/self.p) * (self.s/sig)**self.p)
@@ -86,7 +84,7 @@ class Net(nn.Module):
     def reg_cost_func(self, mu):
         return (BATCHSIZE/TRAINING_INSTANCES)*0.01*torch.sum(torch.abs(mu))
         
-    def forward(self, x, sample=False, biosample=False, lang=False, noise=False, s=False, batch_idx=False, epoch=False):
+    def forward(self, x, sample=False, batch_idx=False, epoch=False):
         self.rel_loss = 0
         self.reg_loss = 0
         
@@ -97,7 +95,7 @@ class Net(nn.Module):
                 self.firingrate.append(x.detach().clone())
             else:
                 self.firingrate[0] += x.detach().clone()
-        x = F.relu(self.linear2(x, sample, biosample, lang, noise))
+        x = F.relu(self.linear2(x, sample))
         if epoch in np.arange(1000, 1100, 1):
             if len(self.firingrate) == 1:
                 self.firingrate.append(x.detach().clone())
@@ -113,7 +111,7 @@ class Net(nn.Module):
         loss = criterion(pred_values, true_values)*BATCHSIZE
         return loss
 
-SAMPLES = 1
+
 def train(sample=False, biosample=False, s=False, lang=False):
     loss_list = []
     accs_list = []
@@ -135,9 +133,9 @@ def train(sample=False, biosample=False, s=False, lang=False):
                 rel_loss = 0
                 reg_loss = 0
 
-                for j in range(SAMPLES):
-                    preds = net(data, sample=sample)
-                    loglike += net.loss(preds, target)
+              
+                preds = net(data, sample=sample)
+                loglike += net.loss(preds, target)
                 
                 loss = loglike + net.rel_loss + net.reg_loss
                 loss.backward()
@@ -158,69 +156,10 @@ def train(sample=False, biosample=False, s=False, lang=False):
                                 hessian[1] += (g.detach().clone()**2)
                                 lr[1] += torch.abs(g.detach().clone())
                             
-                
                 if epoch not in np.arange(1000, 1100, 1):
                     optimiser.step()
-
-
-    mode_performance, mode_loss = (0,0)
-    sample_performance, sample_loss = (0,0)
-    average_performance, average_loss = (0,0)
-    net.eval()
-    mode_performance, mode_loss = test(sample=False, exp_accuracy=False)
-    sample_performance, sample_loss = test(sample=True, exp_accuracy=False)
-    expected_performance, expected_loss = test(sample=True, exp_accuracy=True)
-    
-    return mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss, hessian, lr
-
-        
-
-def test(sample=False, classes=10, exp_accuracy=False):
-    correct = 0
-    loss = 0
-    net.eval()
-    if exp_accuracy:
-        with torch.no_grad():
-            for data in testloader:
-                preds = torch.zeros(BATCHSIZE, 10)
-                class_preds = torch.zeros(BATCHSIZE, 1)
-                for n in range(20):
-                    images, labels = data
-                    images = images.to(device)
-                    images = images.type(torch.double) 
-                    labels = labels.to(device)
-                    labels = labels.type(torch.long)
-                    preds += net(images, sample=sample, biosample=biosample, lang=lang, noise=noise)
                     
-                preds /= 20
-                loss += net.loss(preds, labels)
-                class_preds = preds.max(1, keepdim=True)[1]
-                correct += class_preds.eq(labels.view(-1, 1)).sum().item()
-        accuracy = 100 * correct / (TEST_INSTANCES)
-        loss /= TEST_INSTANCES
-        print('Expected Accuracy', np.round(accuracy,3))
-        print('Expected Loss', np.round(loss.item(),3))
-    else:
-        with torch.no_grad():
-            testloss = [0,0]
-            for data in testloader:
-                data = data
-                images, labels = data
-                images = images.to(device)
-                images = images 
-                labels = labels.to(device)
-                images = images.type(torch.double) 
-                labels = labels.type(torch.long)
-                preds = net(images, sample=sample, biosample=biosample, lang=lang, noise=noise)
-                loss += net.loss(preds, target)
-                class_preds = preds.max(1, keepdim=True)[1]
-                correct += class_preds.eq(labels.view(-1, 1)).sum().item()
-            
-        loss = loss / TEST_INSTANCES
-        accuracy = 100 * correct / TEST_INSTANCES
-        print('Sample Accuracy', np.round(accuracy,3))
-        print('Sample Loss', np.round(loss.item(),3))
-    return accuracy, loss
+    return hessian, lr
 
 
 hessian_list = []
