@@ -274,6 +274,10 @@ for p in powers:
     accs_arr.append(sampled_accs_arr)
     loss_arr.append(sampled_loss_arr)
   
+np.save('accs_arr', accs_arr)
+np.save('rel_arr', rel_arr)
+np.save('sig_arr', sig_arr)
+np.save('loss_arr', loss_arr)
     
 
 
