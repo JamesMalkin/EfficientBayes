@@ -21,10 +21,10 @@ lr_list = []
 x = []
 for i in range(len(self.powers)):
     for j in range(3):
-        var_list.append(np.load('./kalman_project/fig3multi/var_list_{}.npy'.format(3*i+j)))
-        hessian_list.append(np.load('./kalman_project/fig3multi/hessian_list_{}.npy'.format(3*i+j)))
-        lr_list.append(np.load('./kalman_project/fig3multi/lr_list_{}.npy'.format(3*i+j)))
-        x.append(np.load('./kalman_project/fig3multi/x_{}.npy'.format(3*i+j)))
+        var_list.append(np.load('data-fig5/var_list_{}.npy'.format(3*i+j)))
+        hessian_list.append(np.load('data-fig5/kalman_project/fig3multi/hessian_list_{}.npy'.format(3*i+j)))
+        lr_list.append(np.load('data-fig5/kalman_project/fig3multi/lr_list_{}.npy'.format(3*i+j)))
+        x.append(np.load('data-fig5/kalman_project/fig3multi/x_{}.npy'.format(3*i+j)))
 for n in range(9):
     if n == 0:
         for m in range(self.cols):
