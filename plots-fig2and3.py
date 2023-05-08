@@ -7,10 +7,10 @@ from matplotlib import cm
 from tueplots import figsizes, fontsizes, fonts
 from matplotlib import rcParams
 
-accs_arr = np.load('accs_arr.npy')
-loss_arr = np.load('loss_arr.npy')
-rel_arr = np.load('rel_arr.npy')
-sig_arr = np.load('sig_arr.npy')
+accs_arr = np.load('data-fig2and3/accs_arr.npy')
+loss_arr = np.load('data-fig2and3/loss_arr.npy')
+rel_arr = np.load('data-fig2and3/rel_arr.npy')
+sig_arr = np.load('data-fig2and3/sig_arr.npy')
 
 relcost = lambda sig, p, s: (s**p/p)*sig**(-p)
 
@@ -47,7 +47,7 @@ for i, p in enumerate(powers):
     top_side.set_visible(False)
     
 
-plt.savefig('c-acc')
+plt.savefig('fig2')
 
  
 plt.rcParams.update(bundles.icml2022(nrows=3, ncols=4, usetex=False, column='full'))
@@ -88,5 +88,5 @@ for i, p in enumerate(powers):
     top_side.set_visible(False)
 
     
-plt.savefig('var-acc')
+plt.savefig('fig3')
 
