@@ -12,7 +12,7 @@ figsizes.icml2022_full(tight_layout=False)
 plt.rcParams.update(bundles.icml2022(nrows=9, ncols=4, usetex=False, column='full'))
 rcParams['mathtext.default'] = 'regular'
 
-fig, axs = plt.subplots(9, self.cols, dpi=600, figsize=(5.13,9.9)) #figsize=(5.62,12.3639)
+fig, axs = plt.subplots(9, self.cols, dpi=600, figsize=(5.13,9.9))
 color = cm.get_cmap('summer', 5)
 powers = np.array([0.5, 2/3, 4/3, 2])
 var_list = []
