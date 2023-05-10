@@ -28,7 +28,6 @@ for i, p in enumerate(powers):
     ax[0][i].plot((coeffs), accs_arr[i][evens==False], color='grey', alpha = 0.6)
     ax[0][i].set_xscale(value='log')
     ax[0][0].set_ylabel('Accuracy %')
-    ax[0][i].set_xlim([coeffs[2], coeffs[-6]])
     right_side = ax[0][i].spines["right"]
     right_side.set_visible(False)
     top_side = ax[0][i].spines["top"]
@@ -36,7 +35,6 @@ for i, p in enumerate(powers):
    
     ax[1][i].plot((coeffs), sig_arr[i][evens], c=col(i*0.25))
     ax[1][i].plot((coeffs), sig_arr[i][evens==False], c='grey', alpha = 0.6)
-    ax[1][i].set_xlim([coeffs[2], coeffs[-6]])
     ax[1][i].set_xscale(value='log')
     ax[1][i].set_yscale(value='log')
     ax[1][i].set_xlabel('c')
@@ -64,13 +62,12 @@ for i, p in enumerate(powers):
     top_side = ax[0][i].spines["top"]
     top_side.set_visible(False)
     
-    ax[1][i].plot(sig_arr[i][evens], relcost(sig_arr[i][evens], p, 1), c=col(i*0.25))
+    ax[1][i].plot(sig_arr[i][evens], rel_arr[i][evens], c=col(i*0.25))
+    ax[1][i].plot(sig_arr[i][evens==False], rel_arr[i][evens==False], color='grey')
     ax[1][i].set_xscale(value='log')
     ax[1][i].set_yscale(value='log')
     ax[1][0].set_ylabel('Reliability cost')
     ax[1][i].set_xlabel('$\sigma$')
-    ax[1][i].set_ylim([10**-1.5, 10**2])
-    ax[1][i].set_xlim([10**-1.2, 10**0.5])
     right_side = ax[1][i].spines["right"]
     right_side.set_visible(False)
     top_side = ax[1][i].spines["top"]
@@ -81,7 +78,6 @@ for i, p in enumerate(powers):
     ax[2][i].set_xscale(value='log')
     ax[2][i].set_xlabel('Reliability Cost')
     ax[2][0].set_ylabel('Accuracy %')
-    ax[2][i].set_xlim([10**-0.3, 10**1])
     right_side = ax[2][i].spines["right"]
     right_side.set_visible(False)
     top_side = ax[2][i].spines["top"]
