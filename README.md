@@ -2,10 +2,10 @@
 Code used for simulations in paper: *'Energy efficient synapses perform approximate Bayesian inference'*
 
 
-- Data for figures 2,3 and 4 can be found in the data folder
+- Data for figures 2,3 and 4 can be found in the 'data' folder
 
-- Simulations for figures 2,3 and 4 can be replicated using sims-_.py
+- Simulations for figures 2,3 and 4 can be replicated using 'sims-_.py'
 
-- Plots for figures 2,3 and 4 can be replicated using plots-_.py
+- Plots for figures 2,3 and 4 can be replicated using 'plots-_.py'
 
-- Figures 2,3 and 4 can be found in the figures folder
+- Figures 2,3 and 4 can be found in the 'figures' folder
