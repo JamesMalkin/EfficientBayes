@@ -9,3 +9,5 @@ Code used for simulations in paper: **'Energy efficient synapses perform approxi
 - Plots for figures 2,3 and 4 can be replicated using *plots-_.py*
 
 - Figures 2,3 and 4 can be found in folder:- *figures* 
+
+- A generic 2 hidden-layer neural network trained with the performance - reliability cost tradeoff can be run with *network.py*
