@@ -76,7 +76,7 @@ class Net(nn.Module):
         self.firingrate = []
         self.p = power
         self.s = torch.tensor(scale, device=device)
-        self.linear1 = NetLayer(28*28, 10)
+        self.linear1 = NetLayer(28*28, 100)
         self.linear2 = NetLayer(100, 100)
         self.linear3 = NetLayer(100, 10)
     
