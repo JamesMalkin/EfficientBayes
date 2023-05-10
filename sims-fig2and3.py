@@ -39,8 +39,6 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=BATCHSIZE,
 class NetLayer(nn.Module):
     def __init__(self, in_features, out_features):
         super().__init__()
-        self.p = power
-        self.s = torch.tensor(scale, device=device)
         # Weight parameters
         self.weight_mu = nn.Parameter(torch.empty(out_features, in_features, device=device,dtype=torch.double).uniform_(-0.1, 0.1))
         self.weight_phi = nn.Parameter((torch.full((out_features, in_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()))
@@ -78,9 +76,9 @@ class NetLayer(nn.Module):
                     net.rel_loss += (len(self.bias_mu.flatten()))*net.rel_cost_func(weight_s)
                     weight_dist = torch.distributions.Normal(self.weight_mu, weight_s)
                     bias_dist = torch.distributions.Normal(self.bias_mu, weight_s)
-                else:   
-                    weight_dist = torch.distributions.Normal(self.weight_mu, weight_sig)
-                    bias_dist = torch.distributions.Normal(self.bias_mu, bias_sig)
+            else:   
+                weight_dist = torch.distributions.Normal(self.weight_mu, weight_sig)
+                bias_dist = torch.distributions.Normal(self.bias_mu, bias_sig)
         
         weight = weight_dist.rsample()
         bias = bias_dist.rsample()
@@ -93,7 +91,7 @@ class Net(nn.Module):
         self.p = power
         self.s = torch.tensor(scale, device=device)
         self.firingrate = []
-        self.linear1 = NetLayer(28*28, 10)
+        self.linear1 = NetLayer(28*28, 100)
         self.linear2 = NetLayer(100, 100)
         self.linear3 = NetLayer(100, 10)
     
@@ -103,7 +101,7 @@ class Net(nn.Module):
     def reg_cost_func(self, mu):
         return (BATCHSIZE/TRAINING_INSTANCES)*0.01*torch.sum(torch.abs(mu))
         
-    def forward(self, x, sample=False, biosample=False, lang=False, noise=False, s=False, batch_idx=False, epoch=False):
+    def forward(self, x, sample=False, uniform=False):
         self.rel_loss = 0
         self.reg_loss = 0
         
@@ -278,7 +276,3 @@ np.save('accs_arr', accs_arr)
 np.save('rel_arr', rel_arr)
 np.save('sig_arr', sig_arr)
 np.save('loss_arr', loss_arr)
-    
-
-
-
