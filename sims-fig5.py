@@ -92,13 +92,13 @@ class Net(nn.Module):
         
         x = x.view(-1, 784)
         x = self.linear1(x, sample)
-        if epoch in np.arange(1000, 1100, 1):
+        if epoch in np.arange(50, 60, 1):
             if len(self.firingrate) == 0:
                 self.firingrate.append(x.detach().clone())
             else:
                 self.firingrate[0] += x.detach().clone()
         x = F.relu(self.linear2(x, sample))
-        if epoch in np.arange(1000, 1100, 1):
+        if epoch in np.arange(50, 60, 1):
             if len(self.firingrate) == 1:
                 self.firingrate.append(x.detach().clone())
             else:
@@ -120,9 +120,7 @@ def train(sample=False):
     hessian = []
     lr = []
   
-    for epoch in range(1100):
-        if epoch in np.arange(1000, 1100, 1):
-            sample = False
+    for epoch in range(60):
         for batch_idx, (data, target) in enumerate(trainloader):
             if batch_idx <= len(trainloader):
                 net.train()
@@ -141,7 +139,7 @@ def train(sample=False):
                 
                 loss = loglike + net.rel_loss + net.reg_loss
                 loss.backward()
-                if epoch in np.arange(1000, 1100, 1):
+                if epoch in np.arange(50, 60, 1):
                     for name, p in net.named_parameters():
                         if name in ['linear1.weight_mu', 'linear2.weight_mu', 'linear3.weight_mu']:
                             g = p.grad.data
@@ -158,7 +156,7 @@ def train(sample=False):
                                 hessian[1] += (g.detach().clone()**2)
                                 lr[1] += torch.abs(g.detach().clone())
                             
-                if epoch not in np.arange(1000, 1100, 1):
+                if epoch not in np.arange(50, 60, 1):
                     optimiser.step()
                     
     return hessian, lr
@@ -172,7 +170,7 @@ firingrate_list = []
 powers = [0.5, 2/3, 4/3, 2]
    
 for p in powers:
-    s = 0.01
+    s = 0.001
     net = Net(power=p, scale=s)
     optimiser = optim.Adam(net.parameters(), lr=0.0001)
     hessian, lr = train(sample=True)
@@ -182,25 +180,25 @@ for p in powers:
             var_list.append(torch.pow(F.softplus(mod.weight_phi.detach().clone()),2))
       
   
-    hess = hessian[0]/(3000*20*20)
-    hess2 = hessian[1]/(3000*20*20)
-    hess3 = hessian[2]/(3000*20*20)
+    hess = hessian[0]/(60000*10)
+    hess2 = hessian[1]/(60000*10)
+    hess3 = hessian[2]/(60000*10)
  
     hessian_list.append(hess)
     hessian_list.append(hess2)
     hessian_list.append(hess3)
 
-    learn_rate = lr[0]/(3000*20*20)
-    learn_rate2 = lr[1]/(3000*20*20)
-    learn_rate3 = lr[2]/(3000*20*20)
+    learn_rate = lr[0]/(60000*10)
+    learn_rate2 = lr[1]/(60000*10)
+    learn_rate3 = lr[2]/(60000*10)
   
     lr_list.append(learn_rate)
     lr_list.append(learn_rate2)
     lr_list.append(learn_rate3)
     
 
-    firingrate_list.append(net.firingrate[0]/(60000*20))
-    firingrate_list.append(net.firingrate[1]/(60000*20))
+    firingrate_list.append(net.firingrate[0]/(60000*10))
+    firingrate_list.append(net.firingrate[1]/(60000*10))
    
 for p in range(len(powers)):
     for i in range(3):
