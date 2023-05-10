@@ -4,12 +4,6 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import math
-import pandas as pd
-import numpy as np
-import os
-import matplotlib.pyplot as plt
-
 
 
 if torch.cuda.is_available():  
@@ -31,8 +25,6 @@ TEST_INSTANCES = 10000
 TRAINING_INSTANCES = 60000
 LAYERS = 1
 
-#trainset = torch.load('.data/trainset')
-#trainset, valset = torch.utils.data.random_split(trainset, [50000, 10000])
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCHSIZE,
                                           shuffle=True, num_workers=0)
@@ -51,7 +43,7 @@ class NetLayer(nn.Module):
         self.weight_phi = nn.Parameter((torch.full((out_features, in_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()))
         
         # Bias parameters
-        self.bias_mu = nn.Parameter(torch.empty(out_features, device=device, dtype=torch.double).uniform_(-0.1, 0.1)) #(-0.2, 0.2) 
+        self.bias_mu = nn.Parameter(torch.empty(out_features, device=device, dtype=torch.double).uniform_(-0.1, 0.1)) 
         self.bias_phi = nn.Parameter(torch.full((1, out_features), torch.log(torch.exp((torch.tensor(1e-4, dtype=torch.double)))-1), device=device).double()) #was 0.01 before january
         
     
@@ -64,14 +56,10 @@ class NetLayer(nn.Module):
         if self.training:
             net.reg_loss += net.reg_cost_func(self.weight_mu).sum()
             net.reg_loss += net.reg_cost_func(self.bias_mu).sum()
-            #net.prior_loss += net.prior_cost_func(self.weight_mu).sum()
-            #net.prior_loss += net.prior_cost_func(self.bias_mu).sum()
             
             if sample:
                 net.rel_loss += net.rel_cost_func(weight_sig)
                 net.rel_loss += net.rel_cost_func(bias_sig)
-                #net.ent_loss += net.ent_cost_func(self.weight_mu).sum()
-                #net.ent_loss += net.ent_cost_func(self.bias_mu).sum()
                   
         weight_dist = torch.distributions.Normal(self.weight_mu, weight_sig)
         bias_dist = torch.distributions.Normal(self.bias_mu, bias_sig)
@@ -87,27 +75,24 @@ class Net(nn.Module):
         self.firingrate = []
         self.p = power
         self.s = torch.tensor(scale, device=device)
-        self.linear1 = NetLayer(28*28, 10, self.p, self.s)
-        #self.linear2 = NetLayer(100, 100, self.p, self.s)
-        #self.linear3 = NetLayer(100, 10, self.p, self.s)
+        self.linear1 = NetLayer(28*28, 100, self.p, self.s)
+        self.linear2 = NetLayer(100, 100, self.p, self.s)
+        self.linear3 = NetLayer(100, 10, self.p, self.s)
     
     def rel_cost_func(self, sig):
         return (BATCHSIZE/TRAINING_INSTANCES)*torch.sum((1/self.p) * (self.s/sig)**self.p)
     
     def reg_cost_func(self, mu):
         return (BATCHSIZE/TRAINING_INSTANCES)*0.1*torch.sum(torch.abs(mu))
-    
-    def prior_cost_func(self, mu):
-        return (BATCHSIZE/TRAINING_INSTANCES)*1*torch.sum(mu**2)
 
         
-    def forward(self, x, sample=False, biosample=False, lang=False, noise=False, s=False, batch_idx=False, epoch=False):
+    def forward(self, x, sample=False):
         self.rel_loss = 0
         self.reg_loss = 0
         
         x = x.view(-1, 784)
         x = self.linear1(x, sample)
-        x = F.relu(self.linear2(x, sample, biosample, lang, noise))
+        x = F.relu(self.linear2(x, sample))
         x = F.relu(self.linear3(x, sample))
         x = F.log_softmax(x, dim=1)
         return x
@@ -119,7 +104,7 @@ class Net(nn.Module):
         return loss
 
 SAMPLES = 1
-def train(sample=False, biosample=False, s=False, lang=False):
+def train(sample=False):
     loss_list = []
     accs_list = []
     hessian = []
@@ -128,7 +113,7 @@ def train(sample=False, biosample=False, s=False, lang=False):
     running_rel_loss = 0
     running_reg_loss = 0
     running_mode_loss = 0
-    for epoch in range(1000):
+    for epoch in range(50):
         for batch_idx, (data, target) in enumerate(trainloader):
             net.train()
             data = data.to(device)
@@ -140,11 +125,10 @@ def train(sample=False, biosample=False, s=False, lang=False):
             rel_loss = 0
             reg_loss = 0
 
-            for j in range(SAMPLES):
-                preds = net(data, sample=sample)
-                loglike += net.loss(preds, target)
-                rel_loss += net.rel_loss
-                reg_loss += net.reg_loss
+            preds = net(data, sample=sample)
+            loglike += net.loss(preds, target)
+            rel_loss += net.rel_loss
+            reg_loss += net.reg_loss
 
             loss = loglike + rel_loss + reg_loss
             loss.backward()
@@ -208,3 +192,7 @@ def test(sample=False, classes=10, exp_accuracy=False):
         print('Sample Accuracy', np.round(accuracy,3))
         print('Sample Loss', np.round(loss.item(),3))
     return accuracy, loss
+
+net = Net(power=p, scale=s)
+optimiser = optim.Adam(net.parameters(), lr=0.0001)
+mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss = train(sample=True)
