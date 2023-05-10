@@ -125,9 +125,7 @@ def train(sample=False, uniform=False):
     hessian = []
     lr = []
  
-    for epoch in range(1100):
-        if epoch in np.arange(1000, 1100, 1):
-            sample = False
+    for epoch in range(50):
         for batch_idx, (data, target) in enumerate(trainloader):
             if batch_idx <= len(trainloader):
                 net.train()
