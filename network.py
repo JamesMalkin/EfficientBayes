@@ -20,10 +20,8 @@ testset = torchvision.datasets.MNIST(root = '.data/testset', train = False, tran
 torch.manual_seed(0)
     
 BATCHSIZE = 20
-EPOCHS = 1
 TEST_INSTANCES = 10000
 TRAINING_INSTANCES = 60000
-LAYERS = 1
 
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=BATCHSIZE,
@@ -70,14 +68,13 @@ class NetLayer(nn.Module):
         return F.linear(input, weight, bias)
                    
 class Net(nn.Module):
-    def __init__(self, power=2, scale=1): 
+    def __init__(self, power=2, scale=0.001): 
         super().__init__()
-        self.firingrate = []
         self.p = power
         self.s = torch.tensor(scale, device=device)
-        self.linear1 = NetLayer(28*28, 100, self.p, self.s)
-        self.linear2 = NetLayer(100, 100, self.p, self.s)
-        self.linear3 = NetLayer(100, 10, self.p, self.s)
+        self.linear1 = NetLayer(28*28, 100)
+        self.linear2 = NetLayer(100, 100)
+        self.linear3 = NetLayer(100, 10)
     
     def rel_cost_func(self, sig):
         return (BATCHSIZE/TRAINING_INSTANCES)*torch.sum((1/self.p) * (self.s/sig)**self.p)
@@ -193,6 +190,6 @@ def test(sample=False, classes=10, exp_accuracy=False):
         print('Sample Loss', np.round(loss.item(),3))
     return accuracy, loss
 
-net = Net(power=p, scale=s)
+net = Net(power=2, s=0.001)
 optimiser = optim.Adam(net.parameters(), lr=0.0001)
 mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss = train(sample=True)
