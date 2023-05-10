@@ -10,4 +10,4 @@ Code used for simulations in paper: **'Energy efficient synapses perform approxi
 
 - Figures 2,3 and 4 can be found in folder:- *figures* 
 
-- A generic neural network trained under the performance-reliability cost tradeoff can be run through *network.py*
+- A generic neural network trained under the performance-reliability cost tradeoff can be run using *network.py*
