@@ -1,3 +1,5 @@
+# Caution: Due to the number of hyperparameter combinations this simulation takes between 4-6 days, on GPU.
+
 import torch
 import torchvision
 import torchvision.transforms as transforms
