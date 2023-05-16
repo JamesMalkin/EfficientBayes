@@ -1,3 +1,5 @@
+# Caution: This simulation runs for 1 day on GPU
+
 import torch
 import torchvision
 import torchvision.transforms as transforms
