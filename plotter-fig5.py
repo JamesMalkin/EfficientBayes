@@ -19,7 +19,7 @@ var_list = []
 hessian_list = []
 lr_list = []
 x = []
-for i in range(len(self.powers)):
+for i in range(4):
     for j in range(3):
         var_list.append(np.load('data-fig5/var_list_{}.npy'.format(3*i+j)))
         hessian_list.append(np.load('data-fig5/hessian_list_{}.npy'.format(3*i+j)))
@@ -27,7 +27,7 @@ for i in range(len(self.powers)):
         x.append(np.load('data-fig5/x_{}.npy'.format(3*i+j)))
 for n in range(9):
     if n == 0:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(hessian_list[m*3], (var_list[m*3].flatten()), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -38,7 +38,7 @@ for n in range(9):
             axs[n][m].set_xlim([10**-7, 10**-1])
        
     if n == 1:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(hessian_list[m*3+1], (var_list[m*3+1].flatten()), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -49,7 +49,7 @@ for n in range(9):
             axs[n][m].set_xlim([10**-7, 10**-1])
 
     if n == 2:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(hessian_list[m*3+2], (var_list[m*3+2].flatten()), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -61,7 +61,7 @@ for n in range(9):
             axs[n][m].set_xlim([10**-7, 10**-1])
 
     if n == 3:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(0.0001*(1/(lr_list[m*3]).flatten()), ((var_list[m*3].flatten())), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -72,7 +72,7 @@ for n in range(9):
             axs[n][m].set_ylim([10**-5.25,10**(-2.5)])
 
     if n == 4:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(0.0001*(1/(lr_list[m*3+1]).flatten()), ((var_list[m*3+1].flatten())), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -83,7 +83,7 @@ for n in range(9):
             axs[n][m].set_ylim([10**-5.25,10**(-2.5)])
 
     if n == 5:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(0.0001*(1/(lr_list[m*3+2]).flatten()), ((var_list[m*3+2].flatten())), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -95,7 +95,7 @@ for n in range(9):
             axs[n][m].set_xlim([10**-1.9, 10**1.1])
 
     if n == 6:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(np.array(100*((x[m*3]/(20*20)).flatten().tolist())), var_list[m*3].flatten(), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -106,7 +106,7 @@ for n in range(9):
             axs[n][m].set_xticklabels([6*10**-1, 10**0], minor=True)
 
     if n == 7:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(np.array(100*((x[m*3+1]).mean(axis=0).flatten().tolist())), var_list[m*3+1].flatten(), color=color(m*0.25), s=0.08, alpha=0.8)
@@ -118,7 +118,7 @@ for n in range(9):
             axs[n][m].set_ylim([10**-5.25,10**(-2.5)])
 
     if n == 8:
-        for m in range(self.cols):
+        for m in range(4):
             axs[n][m].spines['top'].set_visible(False)
             axs[n][m].spines['right'].set_visible(False)
             axs[n][m].scatter(np.array(10*((x[m*3+2]).mean(axis=0).flatten().tolist())), var_list[m*3+2].flatten(), color=color(m*0.25), s=0.08, alpha=0.8)
