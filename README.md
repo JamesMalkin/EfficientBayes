@@ -1,5 +1,5 @@
 # EfficientBayes
-Code used for simulations in paper: **'Energy efficient synapses perform approximate Bayesian inference'**
+Code used for simulations in paper: **'Signatures of Bayesian inference emerge from energy efficient synapses'**
 
 
 - Data for figures 2, 3, 5 and 6 can be found in folders:- *data-_* 
