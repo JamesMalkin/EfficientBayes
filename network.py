@@ -158,7 +158,7 @@ def test(sample=False, classes=10, exp_accuracy=False):
                     images = images.type(torch.double) 
                     labels = labels.to(device)
                     labels = labels.type(torch.long)
-                    preds += net(images, sample=sample, biosample=biosample, lang=lang, noise=noise)
+                    preds += net(images, sample=sample, lang=lang, noise=noise)
                     
                 preds /= 100
                 loss += net.loss(preds, labels)
@@ -179,7 +179,7 @@ def test(sample=False, classes=10, exp_accuracy=False):
                 labels = labels.to(device)
                 images = images.type(torch.double) 
                 labels = labels.type(torch.long)
-                preds = net(images, sample=sample, biosample=biosample, lang=lang, noise=noise)
+                preds = net(images, sample=sample, lang=lang, noise=noise)
                 loss += net.loss(preds, target)
                 class_preds = preds.max(1, keepdim=True)[1]
                 correct += class_preds.eq(labels.view(-1, 1)).sum().item()
@@ -190,6 +190,6 @@ def test(sample=False, classes=10, exp_accuracy=False):
         print('Sample Loss', np.round(loss.item(),3))
     return accuracy, loss
 
-net = Net(power=2, s=0.001)
+net = Net(power=2, scale=0.001)
 optimiser = optim.Adam(net.parameters(), lr=0.0001)
 mode_performance, mode_loss, sample_performance, sample_loss, expected_performance, expected_loss = train(sample=True)
